@@ -4,6 +4,7 @@ import argparse
 import datetime
 import time
 import sys
+import os
 
 from wpa_supplicant.core import WpaSupplicantDriver
 from twisted.internet.selectreactor import SelectReactor
@@ -27,7 +28,7 @@ def connect_to_wifi(ssid, password, username,
                     authentication="wpa-enterprise"):
     valid_credentials_found = False
 
-    print("Trying %s:%s..." % (username, password))
+    print("%s Trying %s:%s..." % (timestamp(),username, password))
 
     # WPA Enterprise configuration
     if authentication == "wpa-enterprise":
@@ -55,7 +56,7 @@ def connect_to_wifi(ssid, password, username,
 
     # Check the status of the wireless connection
     credentials_valid = 0
-    max_wait = 10
+    max_wait = 20
     # How often, in seconds, the loop checks for successful authentication
     test_interval = 1
     seconds_passed = 0
@@ -73,7 +74,7 @@ def connect_to_wifi(ssid, password, username,
         seconds_passed += test_interval
     
     if credentials_valid == 1:
-        print("[!] VALID CREDENTIALS: %s:%s" % (username, password))
+        print("%s VALID CREDENTIALS: %s:%s" % (timestamp(), username, password))
         if outfile:              
             f = open(outfile, 'a')
 
@@ -192,11 +193,13 @@ try:
                                           supplicant=supplicant, 
                                           outfile=outfile)
 
-    print("DONE!")
+    print("%s DONE!" % (timestamp()))
 except Exception as e:
     print(e)
 
 
 reactor.stop()
 reactor.removeAll()
+exit(1)
+
 
