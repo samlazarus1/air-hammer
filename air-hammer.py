@@ -38,6 +38,8 @@ def connect_to_wifi(ssid, password, username,
             'identity': username,
             'password': password,
             "phase2": "auth=MSCHAPV2",
+            # added
+            #"phase1": "peapver=0"
         } 
 
     # Remove all the networks currently assigned to this interface
@@ -53,7 +55,7 @@ def connect_to_wifi(ssid, password, username,
 
     # Check the status of the wireless connection
     credentials_valid = 0
-    max_wait = 13
+    max_wait = 10
     # How often, in seconds, the loop checks for successful authentication
     test_interval = 1
     seconds_passed = 0
@@ -66,10 +68,10 @@ def connect_to_wifi(ssid, password, username,
         except Exception as e:
             print(e)
             break
-
+        #print("seconds_passed: " + str(seconds_passed))
         time.sleep(test_interval)   
         seconds_passed += test_interval
-
+    
     if credentials_valid == 1:
         print("[!] VALID CREDENTIALS: %s:%s" % (username, password))
         if outfile:              
@@ -108,9 +110,11 @@ parser.add_argument('-i', type=str, required=True, metavar='interface',
                     dest='device', help='Wireless interface')
 parser.add_argument('-e', type=str, required=True,
                     dest='ssid', help='SSID of the target network')
-parser.add_argument('-u', type=str, required=True, dest='userfile', 
+parser.add_argument('-u', type=str, dest='userfile', 
                     help='Username wordlist')
-parser.add_argument('-P', dest='password', default=None,
+parser.add_argument('-U', type=str, required=True, dest='user', 
+                    help='Username ')
+parser.add_argument('-P', required=True, dest='password', default=None,
                     help='Password to try on each username')
 parser.add_argument('-p', dest='passfile', default=None,
                     help='List of passwords to try for each username')
@@ -130,8 +134,6 @@ if "-h" in sys.argv or "--help" in sys.argv or len(sys.argv) == 1:
     exit()
 args = parser.parse_args()
 
-
-
 if (args.password == None) and (args.passfile == None):
     print("You must specify a password or password list.")
     exit()
@@ -143,6 +145,7 @@ if (args.start != 0) and (args.passfile != None):
 device          = args.device
 ssid            = args.ssid
 userfile        = args.userfile
+user            = args.user
 password        = args.password
 passfile        = args.passfile
 start           = args.start
@@ -166,7 +169,7 @@ else:
 # Start a simple Twisted SelectReactor
 reactor = SelectReactor()
 threading.Thread(target=reactor.run, kwargs={'installSignalHandlers': 0}).start()
-time.sleep(0.1)  # let reactor start
+time.sleep(0.5)  # let reactor start
 
 # Start Driver
 driver = WpaSupplicantDriver(reactor)
@@ -181,31 +184,19 @@ try:
 except:
     interface = supplicant.create_interface(device)
 
-
-# Read usernames into array, users
-f = open(userfile, 'r')
-users = [l.rstrip() for l in f.readlines()]
-f.close()
-
 try:
-    for password in passwords:
-        for n in range(start, len(users)):
-            print("[%s] " % n,)
-            valid_credentials_found = connect_to_wifi(ssid=ssid, 
-                                                      username=str(users[n]), 
-                                                      password=str(password), 
-                                                      interface=interface,
-                                                      supplicant=supplicant, 
-                                                      outfile=outfile)
-            if (valid_credentials_found and stop_on_success):
-                break
-
-            time.sleep(attempt_delay)
-
-        if (valid_credentials_found and stop_on_success):
-                break
+    valid_credentials_found = connect_to_wifi(ssid=ssid, 
+                                          username=str(user).strip(), 
+                                          password=str(password).strip(), 
+                                          interface=interface,
+                                          supplicant=supplicant, 
+                                          outfile=outfile)
 
     print("DONE!")
 except Exception as e:
     print(e)
+
+
+reactor.stop()
+reactor.removeAll()
 
