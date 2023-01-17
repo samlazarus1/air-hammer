@@ -16,8 +16,6 @@ echo "interface: $interface"
 echo "SSID: $ssid"
 
 for user in `cat $usernames`; do
-echo "trying $user";
-systemctl restart NetworkManager
-sleep 10
+sudo systemctl restart NetworkManager
 sudo python3 air-hammer.py -i $interface -U $user -P $password -e $ssid;
 done
